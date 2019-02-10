@@ -26,43 +26,50 @@ class SolutionModel(nn.Module):
 
         self.linear1 = nn.Linear(input_size, self.hidden_size)
         self.linear2 = nn.Linear(self.hidden_size, output_size)
+        self.batch_norm1 = nn.BatchNorm1d(self.hidden_size)
+        self.batch_norm2 = nn.BatchNorm1d(output_size)
 
     def forward(self, x):
+        activations = self.solution.activations
         x = self.linear1(x)
-        x = self.solution.activations[self.activation_hidden](x)
+        x = self.batch_norm1(x)
+        x = activations.get(self.activation_hidden)(x)
         x = self.linear2(x)
-        x = self.solution.activations[self.activation_output](x)
+        x = self.batch_norm2(x)
+        x = activations.get(self.activation_output)(x)
         return x
 
 
 class Solution():
     def __init__(self):
-        self.hidden_size = 10
-        self.lr = 1.0
-        self.activation_hidden = 'relu'
-        self.activation_output = 'sigmoid'
+        self.hidden_size = 11
+        self.lr = .1
+        self.activation_hidden = 'leakyrelu001'
+        self.activation_output = 'tanh'
         self.activations = {
             'sigmoid': nn.Sigmoid(),
             'relu': nn.ReLU(),
             'relu6': nn.ReLU6(),
-            'rrelu0103': nn.RReLU(0.1, 0.3),
-            'rrelu0205': nn.RReLU(0.2, 0.5),
+            # 'rrelu0103': nn.RReLU(0.1, 0.3),
+            # 'rrelu0205': nn.RReLU(0.2, 0.5),
             'htang1': nn.Hardtanh(-1, 1),
-            'htang2': nn.Hardtanh(-2, 2),
-            'htang3': nn.Hardtanh(-3, 3),
+            # 'htang2': nn.Hardtanh(-2, 2),
+            # 'htang3': nn.Hardtanh(-3, 3),
             'tanh': nn.Tanh(),
             'elu': nn.ELU(),
-            'selu': nn.SELU(),
-            'hardshrink': nn.Hardshrink(),
-            'leakyrelu01': nn.LeakyReLU(0.1),
+            # 'selu': nn.SELU(),
+            # 'hardshrink': nn.Hardshrink(),
+            # 'leakyrelu01': nn.LeakyReLU(0.1),
             'leakyrelu001': nn.LeakyReLU(0.01),
             'logsigmoid': nn.LogSigmoid(),
-            'prelu': nn.PReLU(),
+            # 'prelu': nn.PReLU(),
         }
-        self.hidden_size_grid = [3, 5, 7, 11]
-        self.lr_grid = [0.001, 0.01, 0.1, 1.0, 10.0, 100.0]
-        self.activation_hidden_grid = [self.activations.keys()]
-        self.activation_output_grid = [self.activations.keys()]
+        # self.hidden_size_grid = [3, 7, 11, 13,  15, 19]
+        # self.lr_grid = [0.01, 0.05, 0.1]
+        self.hidden_size_grid = [3, 7, 11, 15, 20, 25]
+        self.lr_grid = [0.001, 0.01, 0.1, 1, 10, 100]
+        self.activation_hidden_grid = list(self.activations.keys())
+        # self.activation_output_grid = list(self.activations.keys())
         self.grid_search = GridSearch(self)
         self.grid_search.set_enabled(True)
 
@@ -92,6 +99,8 @@ class Solution():
             correct = predict.eq(target.view_as(predict)).long().sum().item()
             # Total number of needed predictions
             total = target.view(-1).size(0)
+            if total == correct:
+                return step
             # calculate loss
             loss = ((output-target)**2).sum()
             # calculate deriviative of model.forward() and put it in model.parameters()...gradient
@@ -104,7 +113,8 @@ class Solution():
         return step
 
     def print_stats(self, step, loss, correct, total, model):
-        if step % 200 == 0:
+        if step % 200 == 0: #and loss.item() < 0.1:
+        # if step % 1000 == 0:
             print("LR={}, HS={}, ActivHidden={}, ActivOut={}, Step = {} Prediction = {}/{} Error = {}".format(model.lr,
                                                                                                               model.hidden_size, model.activation_hidden, model.activation_output, step, correct, total, loss.item()))
 
@@ -156,4 +166,4 @@ class Config:
 
 
 # If you want to run specific case, put number here
-sm.SolutionManager(Config()).run(case_number=1)
+sm.SolutionManager(Config()).run(case_number=-1)
