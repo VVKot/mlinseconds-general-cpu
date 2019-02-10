@@ -264,10 +264,11 @@ class SolutionManager():
 
         return r
 
-    def run(self, case_number):
-        cpuSpeed = CpuSpeed()
-        time_mult = cpuSpeed.calc_time_mult()
-        print("Local CPU time mult = {:.2f}".format(time_mult))
+    def run(self, case_number, run_benchmark=False):
+        if run_benchmark:
+            cpuSpeed = CpuSpeed()
+            time_mult = cpuSpeed.calc_time_mult()
+            print("Local CPU time mult = {:.2f}".format(time_mult))
         data_provider = self.config.get_data_provider()
         if case_number == -1:
             casses = [i+1 for i in range(data_provider.number_of_cases)]
@@ -281,8 +282,8 @@ class SolutionManager():
             case_result['description'] = case_data.description
             case_result = self.evaluate_result(case_data, case_result)
             if case_result['accepted'] == False:
-                print("Need more hint??? Ask for hint at Facebook comments")
-                return False
+                # print("Need more hint??? Ask for hint at Facebook comments")
+                # return False
             case_limits.append(case_data.get_limits())
             case_results.append(case_result)
 
