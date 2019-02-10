@@ -282,8 +282,8 @@ class SolutionManager():
             case_result['description'] = case_data.description
             case_result = self.evaluate_result(case_data, case_result)
             if case_result['accepted'] == False:
-                # print("Need more hint??? Ask for hint at Facebook comments")
-                # return False
+                print("Need more hint??? Ask for hint at Facebook comments")
+                return False
             case_limits.append(case_data.get_limits())
             case_results.append(case_result)
 
