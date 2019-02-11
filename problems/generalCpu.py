@@ -20,58 +20,77 @@ class SolutionModel(nn.Module):
         self.solution = solution
         self.input_size = input_size
         self.hidden_size = solution.hidden_size
+        self.hidden_size_2 = self.hidden_size
         self.lr = solution.lr
         self.activation_hidden = solution.activation_hidden
         self.activation_output = solution.activation_output
 
         self.linear1 = nn.Linear(input_size, self.hidden_size)
-        self.linear2 = nn.Linear(self.hidden_size, output_size)
-        self.batch_norm1 = nn.BatchNorm1d(self.hidden_size)
-        self.batch_norm2 = nn.BatchNorm1d(output_size)
+        self.linear1_2 = nn.Linear(self.hidden_size, self.hidden_size_2)
+        self.linear1_3 = nn.Linear(self.hidden_size_2, self.hidden_size_2)
+        self.linear1_4 = nn.Linear(self.hidden_size_2, self.hidden_size_2)
+        self.linear2 = nn.Linear(self.hidden_size_2, output_size)
+        self.batch_norm1 = nn.BatchNorm1d(self.hidden_size, track_running_stats=False)
+        self.batch_norm1_2 = nn.BatchNorm1d(self.hidden_size_2, track_running_stats=False)
+        self.batch_norm1_3 = nn.BatchNorm1d(self.hidden_size_2, track_running_stats=False)
+        self.batch_norm1_4 = nn.BatchNorm1d(self.hidden_size_2, track_running_stats=False)
+        self.batch_norm2 = nn.BatchNorm1d(output_size, track_running_stats=False)
 
     def forward(self, x):
         activations = self.solution.activations
+        
         x = self.linear1(x)
-        x = self.batch_norm1(x)
         x = activations.get(self.activation_hidden)(x)
+        x = self.batch_norm1(x)
+        
+        x = self.linear1_2(x)
+        x = activations.get(self.activation_hidden)(x)
+        x = self.batch_norm1_2(x)
+        
+        x = self.linear1_3(x)
+        x = activations.get(self.activation_hidden)(x)
+        x = self.batch_norm1_3(x)
+
+        x = self.linear1_4(x)
+        x = activations.get(self.activation_hidden)(x)
+        x = self.batch_norm1_4(x)
+
         x = self.linear2(x)
-        x = self.batch_norm2(x)
         x = activations.get(self.activation_output)(x)
+        x = self.batch_norm2(x)
         return x
 
 
 class Solution():
     def __init__(self):
-        self.hidden_size = 11
-        self.lr = .1
+        self.hidden_size = 64
+        self.lr = .003
         self.activation_hidden = 'leakyrelu001'
-        self.activation_output = 'tanh'
+        self.activation_output = 'sigmoid'
         self.activations = {
             'sigmoid': nn.Sigmoid(),
             'relu': nn.ReLU(),
             'relu6': nn.ReLU6(),
-            # 'rrelu0103': nn.RReLU(0.1, 0.3),
-            # 'rrelu0205': nn.RReLU(0.2, 0.5),
+            'rrelu0103': nn.RReLU(0.1, 0.3),
+            'rrelu0205': nn.RReLU(0.2, 0.5),
             'htang1': nn.Hardtanh(-1, 1),
-            # 'htang2': nn.Hardtanh(-2, 2),
-            # 'htang3': nn.Hardtanh(-3, 3),
+            'htang2': nn.Hardtanh(-2, 2),
+            'htang3': nn.Hardtanh(-3, 3),
             'tanh': nn.Tanh(),
             'elu': nn.ELU(),
-            # 'selu': nn.SELU(),
-            # 'hardshrink': nn.Hardshrink(),
-            # 'leakyrelu01': nn.LeakyReLU(0.1),
+            'selu': nn.SELU(),
+            'hardshrink': nn.Hardshrink(),
+            'leakyrelu01': nn.LeakyReLU(0.1),
             'leakyrelu001': nn.LeakyReLU(0.01),
             'logsigmoid': nn.LogSigmoid(),
-            # 'prelu': nn.PReLU(),
+            'prelu': nn.PReLU(),
         }
-        # self.hidden_size_grid = [3, 7, 11, 13,  15, 19]
-        # self.lr_grid = [0.01, 0.05, 0.1]
-        self.hidden_size_grid = [3, 7, 11, 15, 20, 25]
-        self.lr_grid = [0.001, 0.01, 0.1, 1, 10, 100]
+        self.hidden_size_grid = [16, 20, 26, 32, 36, 40, 50, 64, 80]
+        self.lr_grid = [0.0001, 0.0005, 0.0008, 0.001, 0.002, 0.003, 0.005]
         self.activation_hidden_grid = list(self.activations.keys())
-        # self.activation_output_grid = list(self.activations.keys())
+        self.activation_output_grid = list(self.activations.keys())
         self.grid_search = GridSearch(self)
-        self.grid_search.set_enabled(True)
+        self.grid_search.set_enabled(False)
 
     def create_model(self, input_size, output_size):
         return SolutionModel(input_size, output_size, self)
@@ -100,7 +119,7 @@ class Solution():
             # Total number of needed predictions
             total = target.view(-1).size(0)
             if total == correct:
-                return step
+                    return step
             # calculate loss
             loss = ((output-target)**2).sum()
             # calculate deriviative of model.forward() and put it in model.parameters()...gradient
@@ -113,9 +132,7 @@ class Solution():
         return step
 
     def print_stats(self, step, loss, correct, total, model):
-        if step % 200 == 0: #and loss.item() < 0.1:
-        # if step % 1000 == 0:
-            print("LR={}, HS={}, ActivHidden={}, ActivOut={}, Step = {} Prediction = {}/{} Error = {}".format(model.lr,
+        print("LR={}, HS={}, ActivHidden={}, ActivOut={}, Step = {} Prediction = {}/{} Error = {}".format(model.lr,
                                                                                                               model.hidden_size, model.activation_hidden, model.activation_output, step, correct, total, loss.item()))
 
 ###
