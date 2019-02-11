@@ -146,8 +146,6 @@ class Solution():
             loss = ((output-target)**2).sum()
             # calculate deriviative of model.forward() and put it in model.parameters()...gradient
             loss.backward()
-            # print progress of the learning
-            self.print_stats(step, loss, correct, total, model)
             # update model: model.parameters() -= lr * gradient
             optimizer.step()
             step += 1
