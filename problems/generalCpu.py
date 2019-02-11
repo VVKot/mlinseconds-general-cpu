@@ -17,7 +17,6 @@ import time
 class SolutionModel(nn.Module):
     def __init__(self, input_size, output_size, solution):
         super(SolutionModel, self).__init__()
-        self.best_step = sys.maxsize
         self.solution = solution
         self.input_size = input_size
         self.hidden_size = solution.hidden_size
@@ -58,12 +57,12 @@ class SolutionModel(nn.Module):
 
         x = self.linear2(x)
         x = activations.get(self.activation_output)(x)
-        x = self.batch_norm2(x)
         return x
 
 
 class Solution():
     def __init__(self):
+        self.best_step = sys.maxsize
         self.sols = {}
         self.solsSum = {}
         self.hidden_size = 50
@@ -140,8 +139,8 @@ class Solution():
                     self.solsSum[key] = 0
                 self.sols[key] += 1
                 self.solsSum[key] += step
-                if step < model.best_step:
-                    model.best_step = step
+                if step < self.best_step:
+                    self.best_step = step
                     loss = criterion(output, target)
                     self.print_stats(step, loss, correct, total, model)
                     print("{:.4f}".format(float(self.solsSum[key])/self.sols[key]))
