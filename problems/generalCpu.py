@@ -66,8 +66,8 @@ class Solution():
     def __init__(self):
         self.sols = {}
         self.solsSum = {}
-        self.hidden_size = 64
-        self.lr = .003
+        self.hidden_size = 50
+        self.lr = 1
         self.activation_hidden = 'leakyrelu001'
         self.activation_output = 'sigmoid'
         self.activations = {
@@ -88,12 +88,15 @@ class Solution():
             'logsigmoid': nn.LogSigmoid(),
             'prelu': nn.PReLU(),
         }
-        self.hidden_size_grid = [16, 20, 26, 32, 36, 40, 50, 64, 80]
-        self.lr_grid = [0.0001, 0.0005, 0.0008, 0.001, 0.002, 0.003, 0.005]
-        self.activation_hidden_grid = list(self.activations.keys())
-        self.activation_output_grid = list(self.activations.keys())
+        self.hidden_size_grid = [16, 20, 26, 32, 36, 40, 45, 50]
+        # self.lr_grid = [0.0001, 0.0005, 0.0008, 0.001, 0.002, 0.003, 0.005]
+
+        self.lr_grid = [0.1, .5, 1, 1.5, 2, 3, 5, 10]
+
+        # self.activation_hidden_grid = list(self.activations.keys())
+        # self.activation_output_grid = list(self.activations.keys())
         self.grid_search = GridSearch(self)
-        self.grid_search.set_enabled(False)
+        self.grid_search.set_enabled(True)
 
     def create_model(self, input_size, output_size):
         return SolutionModel(input_size, output_size, self)
@@ -103,6 +106,7 @@ class Solution():
         step = 0
         # Put model in train mode
         model.train()
+        criterion = F.binary_cross_entropy
         while True:
             time_left = context.get_timer().get_time_left()
             key = "{}_{}_{}_{}".format(self.lr, self.hidden_size, self.activation_hidden, self.activation_output)
@@ -138,12 +142,12 @@ class Solution():
                 self.solsSum[key] += step
                 if step < model.best_step:
                     model.best_step = step
-                    loss = ((output-target)**2).sum()
+                    loss = criterion(output, target)
                     self.print_stats(step, loss, correct, total, model)
                     print("{:.4f}".format(float(self.solsSum[key])/self.sols[key]))
                     return step
             # calculate loss
-            loss = ((output-target)**2).sum()
+            loss = criterion(output, target)
             # calculate deriviative of model.forward() and put it in model.parameters()...gradient
             loss.backward()
             # update model: model.parameters() -= lr * gradient
