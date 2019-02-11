@@ -17,6 +17,7 @@ import time
 class SolutionModel(nn.Module):
     def __init__(self, input_size, output_size, solution):
         super(SolutionModel, self).__init__()
+        self.best_step = sys.maxsize
         self.solution = solution
         self.input_size = input_size
         self.hidden_size = solution.hidden_size
@@ -63,6 +64,8 @@ class SolutionModel(nn.Module):
 
 class Solution():
     def __init__(self):
+        self.sols = {}
+        self.solsSum = {}
         self.hidden_size = 64
         self.lr = .003
         self.activation_hidden = 'leakyrelu001'
@@ -102,10 +105,19 @@ class Solution():
         model.train()
         while True:
             time_left = context.get_timer().get_time_left()
+            key = "{}_{}_{}_{}".format(self.lr, self.hidden_size, self.activation_hidden, self.activation_output)
             # No more time left, stop training
-            if time_left < 0.1 or (model.solution.grid_search.enabled and step > 1000):
+            if time_left < 0.1 or (model.solution.grid_search.enabled and step > 100):
+                if not key in self.sols:
+                    self.sols[key] = 0
+                    self.solsSum[key] = 0
+                self.sols[key] += 1
+                self.solsSum[key] += step
+                self.sols[key] = -1
                 break
-            optimizer = optim.SGD(model.parameters(), lr=model.lr)
+            if key in self.sols and self.sols[key] == -1:
+                break
+            optimizer = optim.SGD(model.parameters(), lr=model.lr, momentum=0.9)
             data = train_data
             target = train_target
             # model.parameters()...gradient set to zero
@@ -119,6 +131,16 @@ class Solution():
             # Total number of needed predictions
             total = target.view(-1).size(0)
             if total == correct:
+                if not key in self.sols:
+                    self.sols[key] = 0
+                    self.solsSum[key] = 0
+                self.sols[key] += 1
+                self.solsSum[key] += step
+                if step < model.best_step:
+                    model.best_step = step
+                    loss = ((output-target)**2).sum()
+                    self.print_stats(step, loss, correct, total, model)
+                    print("{:.4f}".format(float(self.solsSum[key])/self.sols[key]))
                     return step
             # calculate loss
             loss = ((output-target)**2).sum()
