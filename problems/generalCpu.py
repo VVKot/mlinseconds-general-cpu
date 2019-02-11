@@ -57,6 +57,7 @@ class SolutionModel(nn.Module):
 
         x = self.linear2(x)
         x = activations.get(self.activation_output)(x)
+
         return x
 
 
@@ -66,8 +67,8 @@ class Solution():
         self.sols = {}
         self.solsSum = {}
         self.hidden_size = 50
-        self.lr = 1
-        self.activation_hidden = 'leakyrelu001'
+        self.lr = 0.01
+        self.activation_hidden = 'relu6'
         self.activation_output = 'sigmoid'
         self.activations = {
             'sigmoid': nn.Sigmoid(),
@@ -87,15 +88,15 @@ class Solution():
             'logsigmoid': nn.LogSigmoid(),
             'prelu': nn.PReLU(),
         }
-        self.hidden_size_grid = [16, 20, 26, 32, 36, 40, 45, 50]
-        # self.lr_grid = [0.0001, 0.0005, 0.0008, 0.001, 0.002, 0.003, 0.005]
+        self.hidden_size_grid = [16, 20, 26, 32, 36, 40, 45, 50, 54]
+        self.lr_grid = [0.0001, 0.001, 0.005, 0.01, 0.1, 1]
 
-        self.lr_grid = [0.1, .5, 1, 1.5, 2, 3, 5, 10]
+        # self.lr_grid = [0.1, .5, 1, 1.5, 2, 3, 5, 10]
 
         # self.activation_hidden_grid = list(self.activations.keys())
         # self.activation_output_grid = list(self.activations.keys())
         self.grid_search = GridSearch(self)
-        self.grid_search.set_enabled(True)
+        self.grid_search.set_enabled(False)
 
     def create_model(self, input_size, output_size):
         return SolutionModel(input_size, output_size, self)
@@ -106,6 +107,8 @@ class Solution():
         # Put model in train mode
         model.train()
         criterion = F.binary_cross_entropy
+        # optimizer = optim.SGD(model.parameters(), lr=model.lr, momentum=0.9)
+        optimizer = optim.Adam(model.parameters(), lr=model.lr)
         while True:
             time_left = context.get_timer().get_time_left()
             key = "{}_{}_{}_{}".format(self.lr, self.hidden_size, self.activation_hidden, self.activation_output)
@@ -120,7 +123,6 @@ class Solution():
                 break
             if key in self.sols and self.sols[key] == -1:
                 break
-            optimizer = optim.SGD(model.parameters(), lr=model.lr, momentum=0.9)
             data = train_data
             target = train_target
             # model.parameters()...gradient set to zero
@@ -139,7 +141,7 @@ class Solution():
                     self.solsSum[key] = 0
                 self.sols[key] += 1
                 self.solsSum[key] += step
-                if step < self.best_step:
+                if step < 21:
                     self.best_step = step
                     loss = criterion(output, target)
                     self.print_stats(step, loss, correct, total, model)
